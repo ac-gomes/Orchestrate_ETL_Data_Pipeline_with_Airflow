@@ -76,7 +76,6 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-    - ${AIRFLOW_PROJ_DIR:-.}/dags/utils:/opt/airflow/dags/utils
 
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
@@ -250,6 +249,7 @@ services:
         fi
         mkdir -p /sources/logs /sources/dags /sources/plugins
         chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
+        chown -R "${AIRFLOW_UID}:0" /sources/dags/utils
         exec /entrypoint airflow version
     # yamllint enable rule:line-length
     environment:

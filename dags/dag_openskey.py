@@ -7,6 +7,7 @@ from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
+from utils.utils import convert_to_polars_dataFrame, convert_to_parquet, save_file
 
 
 default_args = {
@@ -18,46 +19,8 @@ default_args = {
 END_POINT = Variable.get('OpenSky_END_POINT')
 ALL_DATA = Variable.get('OpenSky_data')
 
-schema = [
-    'icao24',
-    'callsign',
-    'origin_country',
-    'time_position',
-    'last_contact',
-    'longitude',
-    'latitude',
-    'baro_altitude',
-    'on_ground',
-    'velocity',
-    'true_track',
-    'vertical_rate',
-    'sensors',
-    'geo_altitude',
-    'squawk',
-    'spi',
-    'position_source'
-]
 
-
-def convert_to_polars_dataFrame(data):
-    """This function will convert the received data in a polars dataframe"""
-    import polars as pl
-    try:
-        df = pl.DataFrame(data=data, schema=schema)
-        return df
-    except Exception as Error:
-        print(f"Something went wrong: {Error}")
-
-
-def convert_to_parquet():
-    pass
-
-
-def save_file():
-    pass
-
-
-def Transformers(ti) -> None:
+def convert_to_df(ti) -> None:
     # import polars as pl
     data = ti.xcom_pull(task_ids=['Extract_flights'])
     flights = data[0]['states']
@@ -67,7 +30,7 @@ def Transformers(ti) -> None:
 
 
 with DAG(
-    dag_id='get_data_from_OpenSkyApi_v01.8.4',
+    dag_id='get_data_from_OpenSkyApi_v01.8.5',
     default_args=default_args,
     description='This will get data from openSkyAPI',
     start_date=datetime(2023, 5, 23),
@@ -95,12 +58,12 @@ with DAG(
 
     Transform_flights = PythonOperator(
         task_id='Transform_flights',
-        python_callable=Transformers
+        python_callable=convert_to_df
     )
 
     Load_flights = PythonOperator(
         task_id='Load_flights',
-        python_callable=save_file
+        python_callable=convert_to_parquet
     )
 
     end = EmptyOperator(
