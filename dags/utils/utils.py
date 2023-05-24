@@ -50,7 +50,6 @@ def upload_to_s3_bucket(filename, key, bucket_name) -> None:
 
     except Exception as Error:
         print(f"Something went wrong: {Error}")
-    pass
 
 
 def delete_temp_file() -> None:

@@ -33,7 +33,7 @@ def transformer(ti) -> None:
 
 
 with DAG(
-    dag_id='get_data_from_OpenSkyApi_v02.1',
+    dag_id='OpenSkyApi_to_s3_bucket_v02.1',
     default_args=default_args,
     description='This will get data from openSkyAPI',
     start_date=datetime(2023, 5, 24),
