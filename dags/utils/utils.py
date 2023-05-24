@@ -1,3 +1,7 @@
+import polars as pl
+import os
+import pathlib
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 schema = [
     'icao24',
@@ -22,17 +26,31 @@ schema = [
 
 def convert_to_polars_dataFrame(data):
     """This function will convert the received data in a polars dataframe"""
-    import polars as pl
+
     try:
         df = pl.DataFrame(data=data, schema=schema)
-        return df
+        TEMP_FILE_PATH: pathlib.Path = 'tmpdata/polars_df.json'
+        df.write_ndjson(TEMP_FILE_PATH)
+
     except Exception as Error:
         print(f"Something went wrong: {Error}")
 
 
-def convert_to_parquet():
+def upload_to_s3_bucket(filename, key, bucket_name) -> None:
+    hook = S3Hook('s3_conn')
+
+    try:
+        hook.load_file(
+            filename=filename,
+            key=key,
+            bucket_name=bucket_name,
+            replace=True
+        )
+
+    except Exception as Error:
+        print(f"Something went wrong: {Error}")
     pass
 
 
-def save_file():
+def clear_dir() -> None:
     pass

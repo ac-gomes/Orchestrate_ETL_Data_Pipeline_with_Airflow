@@ -1,4 +1,6 @@
 import json
+from datetime import datetime, timedelta
+
 from airflow import DAG
 from airflow.models import Variable
 
@@ -6,8 +8,7 @@ from airflow.providers.http.sensors.http import HttpSensor
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
-from datetime import datetime, timedelta
-from utils.utils import convert_to_polars_dataFrame, convert_to_parquet, save_file
+from utils.utils import convert_to_polars_dataFrame, upload_to_s3_bucket
 
 
 default_args = {
@@ -18,22 +19,20 @@ default_args = {
 
 END_POINT = Variable.get('OpenSky_END_POINT')
 ALL_DATA = Variable.get('OpenSky_data')
+RAW_S3_BUCKET = Variable.get('raw_s3_bucket')
 
 
-def convert_to_df(ti) -> None:
-    # import polars as pl
+def transformer(ti) -> None:
     data = ti.xcom_pull(task_ids=['Extract_flights'])
     flights = data[0]['states']
-
-    df_flights = convert_to_polars_dataFrame(flights)
-    print(df_flights.schema)
+    convert_to_polars_dataFrame(flights)
 
 
 with DAG(
-    dag_id='get_data_from_OpenSkyApi_v01.8.5',
+    dag_id='get_data_from_OpenSkyApi_v01.8.14',
     default_args=default_args,
     description='This will get data from openSkyAPI',
-    start_date=datetime(2023, 5, 23),
+    start_date=datetime(2023, 5, 24),
     schedule_interval='@daily',
     catchup=False
 ) as dag:
@@ -58,16 +57,21 @@ with DAG(
 
     Transform_flights = PythonOperator(
         task_id='Transform_flights',
-        python_callable=convert_to_df
+        python_callable=transformer
     )
 
-    Load_flights = PythonOperator(
-        task_id='Load_flights',
-        python_callable=convert_to_parquet
+    Upload_flights_to_s3 = PythonOperator(
+        task_id='Upload_flights_to_s3',
+        python_callable=upload_to_s3_bucket,
+        op_kwargs={
+            'filename': 'tmpdata/polars_df.json',
+            'key': 'polars_df.json',
+            'bucket_name': RAW_S3_BUCKET
+        }
     )
 
     end = EmptyOperator(
         task_id='end'
     )
 
-start >> Is_api_available >> Extract_flights >> Transform_flights >> Load_flights >> end
+start >> Is_api_available >> Extract_flights >> Transform_flights >> Upload_flights_to_s3 >> end
