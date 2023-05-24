@@ -8,7 +8,11 @@ from airflow.providers.http.sensors.http import HttpSensor
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
-from utils.utils import convert_to_polars_dataFrame, upload_to_s3_bucket
+from utils.utils import (
+    convert_to_polars_dataFrame,
+    upload_to_s3_bucket,
+    delete_temp_file
+)
 
 
 default_args = {
@@ -29,7 +33,7 @@ def transformer(ti) -> None:
 
 
 with DAG(
-    dag_id='get_data_from_OpenSkyApi_v01.8.14',
+    dag_id='get_data_from_OpenSkyApi_v02.1',
     default_args=default_args,
     description='This will get data from openSkyAPI',
     start_date=datetime(2023, 5, 24),
@@ -43,7 +47,7 @@ with DAG(
     Is_api_available = HttpSensor(
         task_id='Is_api_available',
         http_conn_id='opensky_api',
-        endpoint=f"{END_POINT}/states/all?time=1458564121&icao24=3c6444"
+        endpoint=END_POINT
     )
 
     Extract_flights = SimpleHttpOperator(
@@ -64,14 +68,19 @@ with DAG(
         task_id='Upload_flights_to_s3',
         python_callable=upload_to_s3_bucket,
         op_kwargs={
-            'filename': 'tmpdata/polars_df.json',
-            'key': 'polars_df.json',
+            'filename': 'tmpdata/flights.json',
+            'key': 'flights.json',
             'bucket_name': RAW_S3_BUCKET
         }
+    )
+
+    Clear_tmp_files = PythonOperator(
+        task_id='Clear_tmp_files',
+        python_callable=delete_temp_file
     )
 
     end = EmptyOperator(
         task_id='end'
     )
 
-start >> Is_api_available >> Extract_flights >> Transform_flights >> Upload_flights_to_s3 >> end
+start >> Is_api_available >> Extract_flights >> Transform_flights >> Upload_flights_to_s3 >> Clear_tmp_files >> end

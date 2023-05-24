@@ -3,6 +3,8 @@ import os
 import pathlib
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
+TEMP_FILE_PATH: pathlib.Path = 'tmpdata/flights.json'
+
 schema = [
     'icao24',
     'callsign',
@@ -29,7 +31,6 @@ def convert_to_polars_dataFrame(data):
 
     try:
         df = pl.DataFrame(data=data, schema=schema)
-        TEMP_FILE_PATH: pathlib.Path = 'tmpdata/polars_df.json'
         df.write_ndjson(TEMP_FILE_PATH)
 
     except Exception as Error:
@@ -52,5 +53,6 @@ def upload_to_s3_bucket(filename, key, bucket_name) -> None:
     pass
 
 
-def clear_dir() -> None:
-    pass
+def delete_temp_file() -> None:
+    if os.path.exists(TEMP_FILE_PATH):
+        os.remove(TEMP_FILE_PATH)
