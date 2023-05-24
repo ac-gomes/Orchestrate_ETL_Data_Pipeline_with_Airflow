@@ -8,6 +8,7 @@ from airflow.providers.http.sensors.http import HttpSensor
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
+
 from utils.utils import (
     convert_to_polars_dataFrame,
     upload_to_s3_bucket,
@@ -37,7 +38,8 @@ with DAG(
     default_args=default_args,
     description='This will get data from openSkyAPI',
     start_date=datetime(2023, 5, 24),
-    schedule_interval='@daily',
+    # to run every 5 minutes timedelta(minutes=5) airflow versions >2.1
+    schedule_interval=timedelta(minutes=5),
     catchup=False
 ) as dag:
     start = EmptyOperator(
