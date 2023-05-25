@@ -36,7 +36,7 @@ def transformer(ti) -> None:
 with DAG(
     dag_id='OpenSkyApi_to_s3_bucket_v02.1',
     default_args=default_args,
-    description='This will get data from openSkyAPI',
+    description='This will to get data from openSky API and put into a Amazon s3 bucket',
     start_date=datetime(2023, 5, 24),
     # to run every 5 minutes timedelta(minutes=5) airflow versions >2.1
     schedule_interval=timedelta(minutes=5),
